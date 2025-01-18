@@ -31,11 +31,10 @@ This repository contains a Flutter app that connects to an ESP32-C3 microcontrol
 ## Setup
 
 ### 1. Clone the Repository
-```bash
-**Esp32**:
+- **ESP32**:
 git clone https://github.com/Panther-Racing-AUTh/velocity-stack.git
 
-**Flutter App**:
+- **Flutter App**:
 git clone https://github.com/Panther-Racing-AUTh/Velocity-Handler.git
 
 

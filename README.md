@@ -8,25 +8,23 @@ This repository contains a Flutter app that connects to an ESP32-C3 microcontrol
 
 - **Wi-Fi Connectivity**: Connects to the ESP32-C3 over Wi-Fi.
 - **Real-Time RPM Display**: Continuously monitors and updates the RPM.
-- **Four Modes Based on RPM**:
-  - **Idle**: 0-1500 RPM
-  - **Economy**: 1501-4000 RPM
-  - **Sport**: 4001-7000 RPM
-  - **Overdrive**: 7001+ RPM
+- **Four Modes Based on RPM**
 - **Customizable RPM Ranges**: Easily modify ranges to fit your needs.
+- **Responsive UI**: Optimized for both Android and iOS devices.
 
 ---
 
 ## Prerequisites
 
 ### Hardware
-- ESP32-C3 microcontroller
-- Motorcycle RPM signal output (or sensor setup)
-- Wi-Fi-enabled smartphone or tablet
+- **ESP32-C3 Microcontroller**: Configured to read motorcycle RPM.
+- **RPM Signal Source**: Ensure your motorcycle provides an accessible RPM signal (e.g., from the tachometer output or engine management system).
+- **Power Source**: USB power for ESP32-C3.
 
 ### Software
-- Flutter SDK (latest stable version)
-- Arduino IDE for ESP32 firmware
+- **Flutter SDK**: Install the latest stable version ([Flutter installation guide](https://flutter.dev/docs/get-started/install)).
+- **Arduino IDE**: For programming the ESP32-C3 ([Arduino installation guide](https://www.arduino.cc/en/software)).
+- **ESP32 Board Manager**: Add the ESP32 core to Arduino IDE ([ESP32 setup guide](https://github.com/espressif/arduino-esp32)).
 
 ---
 
@@ -34,5 +32,10 @@ This repository contains a Flutter app that connects to an ESP32-C3 microcontrol
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/esp32-c3-motorcycle-rpm-monitor.git
-cd esp32-c3-motorcycle-rpm-monitor
+**Esp32**:
+git clone https://github.com/Panther-Racing-AUTh/velocity-stack.git
+
+**Flutter App**:
+git clone https://github.com/Panther-Racing-AUTh/Velocity-Handler.git
+
+

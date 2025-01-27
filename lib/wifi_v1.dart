@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:esp_v1/drawer.dart';
 import 'package:esp_v1/modify_rpm_screen.dart';
 import 'package:esp_v1/provider.dart';
 import 'package:esp_v1/test_page.dart';
@@ -55,6 +56,7 @@ class _ESP8266ControlPageState extends State<ESP8266ControlPage> {
   late Timer _timerTestCheck; // Timer for fetching data
   int check_loop=0;
   bool test_check=false;
+  final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -222,32 +224,66 @@ class _ESP8266ControlPageState extends State<ESP8266ControlPage> {
       ],
     );
   }
-  Widget OvalSegmentSelector(){
-    final rpmProvider=Provider.of<RPMRangeProvider>(context,listen: false);
+  Widget OvalSegmentSelector() {
+    final rpmProvider = Provider.of<RPMRangeProvider>(context, listen: false);
+
+    // Segment width
+    final double segmentWidth = 100.0; // Width of each segment
+    double segmentSpacing = 20.0; // Padding on left and right edges
+    if(rpmProvider.rpmFrequencyFetchIndex == 0){
+      segmentSpacing =20.0;
+    }else if(rpmProvider.rpmFrequencyFetchIndex == 1){
+      segmentSpacing=28.0;
+    }else{
+      segmentSpacing=36.0;
+    }
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         // Oval Shape Container
         Container(
-          width: 300,
+          width: segmentWidth * rpmProvider.options.length + segmentSpacing,
           height: 80,
           decoration: BoxDecoration(
-            color: Colors.grey[400],
+            gradient: LinearGradient(
+              colors: [Colors.grey[300]!, Colors.grey[400]!],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
             borderRadius: BorderRadius.circular(40), // Oval Shape
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 8,
+                offset: Offset(2, 4),
+              ),
+            ],
           ),
           child: Stack(
             children: [
               // Highlighted Section (Animated)
-              AnimatedAlign(
-                alignment: _getAlignmentForIndex(rpmProvider.rpmFrequencyFetchIndex),
+              AnimatedPositioned(
                 duration: Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                left: rpmProvider.rpmFrequencyFetchIndex * segmentWidth + segmentSpacing / 2,
+                top: 10,
                 child: Container(
-                  width: 90,
+                  width: segmentWidth - 10,
                   height: 60,
-                  margin: rpmProvider.rpmFrequencyFetchIndex == 0 ? EdgeInsets.symmetric(horizontal: 10) : rpmProvider.rpmFrequencyFetchIndex==1 ? EdgeInsets.only(left: 0) : EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
-                    color: Colors.blue,
-                    borderRadius: rpmProvider.rpmFrequencyFetchIndex !=1 ? rpmProvider.rpmFrequencyFetchIndex==0 ?  BorderRadius.only(bottomLeft: Radius.circular(40),topLeft: Radius.circular(40),bottomRight: Radius.circular(5),topRight: Radius.circular(5)):  BorderRadius.only(bottomRight: Radius.circular(30),topRight: Radius.circular(30),bottomLeft: Radius.circular(5),topLeft: Radius.circular(5)) : BorderRadius.circular(5), // Rounded segment
+                    gradient: LinearGradient(
+                      colors: [Colors.blue, Colors.blueAccent],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.blue.withOpacity(0.4),
+                        blurRadius: 6,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -260,20 +296,22 @@ class _ESP8266ControlPageState extends State<ESP8266ControlPage> {
                       setState(() {
                         rpmProvider.updateSelectedIndex(index);
                         _timerPosition.cancel();
-                        _timerPosition = Timer.periodic(Duration(milliseconds: rpmProvider.optionVals[rpmProvider.rpmFrequencyFetchIndex]), (timer) => getCurrentPosition());
-
+                        _timerPosition = Timer.periodic(
+                          Duration(milliseconds: rpmProvider.optionVals[rpmProvider.rpmFrequencyFetchIndex]),
+                              (timer) => getCurrentPosition(),
+                        );
                       });
                     },
                     child: Container(
-                      width: 100,
-                      color: Colors.white12,
+                      width: segmentWidth,
                       alignment: Alignment.center,
                       child: Text(
                         rpmProvider.options[index],
                         style: TextStyle(
+                          fontSize: 16,
                           color: rpmProvider.rpmFrequencyFetchIndex == index
                               ? Colors.white
-                              : Colors.black,
+                              : Colors.black87,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -284,11 +322,8 @@ class _ESP8266ControlPageState extends State<ESP8266ControlPage> {
             ],
           ),
         ),
-
       ],
     );
-    // Helper: Get alignment for the selected index
-
   }
   Alignment _getAlignmentForIndex(int index) {
     switch (index) {
@@ -317,196 +352,211 @@ Widget build(BuildContext context) {
   final rpmProvider=Provider.of<RPMRangeProvider>(context,listen: false);
 
   return Scaffold(
+    drawer: CustomDrawer(),
+    key: scaffoldKey, // Assign the global key here
     backgroundColor: Colors.grey[100], 
-    body: SafeArea(
-      child: test_check ? ProcessingPage(testCheck: test_check,) : SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
+    body: Stack(
+      children: [
+
+        SafeArea(
+          child: test_check ? ProcessingPage(testCheck: test_check,) : SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
 
 
-              const SizedBox(height: 10),
+                  const SizedBox(height: 30),
 
-              // Wi-Fi Status Card
-              Card(
-                elevation: 6,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    children: [
-                      Text(
-                        "Wi-Fi Status",
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                  // Wi-Fi Status Card
+                  Card(
+                    elevation: 6,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
                         children: [
-                          Icon(
-                            isConnectedToESP ? Icons.wifi : Icons.wifi_off,
-                            color: isConnectedToESP ? Colors.green : Colors.red,
-                            size: 26,
-                          ),
-                          const SizedBox(width: 10),
                           Text(
-                            isConnectedToESP ? "Connected" : "Disconnected",
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: isConnectedToESP ? Colors.green : Colors.red,
+                            "Wi-Fi Status",
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                isConnectedToESP ? Icons.wifi : Icons.wifi_off,
+                                color: isConnectedToESP ? Colors.green : Colors.red,
+                                size: 26,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                isConnectedToESP ? "Connected" : "Disconnected",
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: isConnectedToESP ? Colors.green : Colors.red,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+
+                  OvalSegmentSelector(),
+
+
+                  const SizedBox(height: 15),
+                  // RPM Display
+                  Container(
+                    width: MediaQuery.of(context).size.width * .6,
+                    child: Card(
+                    elevation: 8,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Column(
+                        children: [
+                          const Text(
+                            "RPM",
+                            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 10),
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 500),
+                            transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
+                            child: Text(
+                              rpmValue.toStringAsFixed(0),
+                              style: const TextStyle(
+                                fontSize: 50,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blueAccent,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 15),
+                  ),
+                  const SizedBox(height: 25),
 
-              OvalSegmentSelector(
-
-              ),
-
-
-              const SizedBox(height: 15),
-              // RPM Display
-              Container(
-                width: MediaQuery.of(context).size.width * .6,
-                child: Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Column(
-                    children: [
-                      const Text(
-                        "RPM", 
-                        style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700),
+                  // Mode Selection
+                  Card(
+                    elevation: 8,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        children: [
+                          const Text(
+                            "Mode",
+                            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 15),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: List.generate(rpmProvider.ranges.length - 1, (index) => modeText(index + 1, currentMode),)
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 10),
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 500),
-                        transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
-                        child: Text(
-                          rpmValue.toStringAsFixed(0),
-                          style: const TextStyle(
-                            fontSize: 50, 
-                            fontWeight: FontWeight.bold, 
-                            color: Colors.blueAccent,
+                    ),
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  // CHANGE Button (Gradient)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      SyncButtonScreen(isConnectedToESP: isConnectedToESP,syncButton: syncButton(
+                        isConnectedToESP: isConnectedToESP,
+                        onRangesFetched: updateRanges,
+                      ),),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => MultiSliderExample()));
+                          print(rpmProvider.ranges);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [Colors.blueAccent, Colors.purpleAccent]),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(color: Colors.black.withOpacity(0.2), spreadRadius: 1, blurRadius: 6),
+                            ],
+                          ),
+                          child: const Text(
+                            "CHANGE",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                              letterSpacing: 1.5,
+                            ),
                           ),
                         ),
                       ),
                     ],
                   ),
-                ),
-              ),
-              ),
-              const SizedBox(height: 25),
 
-              // Mode Selection
-              Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    children: [
-                      const Text(
-                        "Mode", 
-                        style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 15),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          modeText(1, currentMode),
-                          modeText(2, currentMode),
-                          modeText(3, currentMode),
-                          modeText(4, currentMode),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+                  const SizedBox(height: 30),
 
-              const SizedBox(height: 15),
+                  // TEST Button (Elevated)
+                  ElevatedButton(
+                    onPressed: () {
+                      _timerPosition.cancel();
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => BooleanToIntegerSequence(onPopScreen: () {
+                        _timerPosition = Timer.periodic(Duration(milliseconds: rpmProvider.optionVals[rpmProvider.rpmFrequencyFetchIndex]), (timer) => getCurrentPosition());
+                        setState(() {
+                          print("object");
 
-              // CHANGE Button (Gradient)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  SyncButtonScreen(isConnectedToESP: isConnectedToESP,syncButton: syncButton(
-                    isConnectedToESP: isConnectedToESP,
-                    onRangesFetched: updateRanges,
-                  ),),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => MultiSliderExample()));
-                      print(rpmProvider.ranges);
+                        });
+                      },),));
                     },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(colors: [Colors.blueAccent, Colors.purpleAccent]),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.2), spreadRadius: 1, blurRadius: 6),
-                        ],
-                      ),
-                      child: const Text(
-                        "CHANGE",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                          letterSpacing: 1.5,
-                        ),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                      backgroundColor: Colors.blueAccent,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 10,
+                      minimumSize: Size(MediaQuery.of(context).size.width, 50),
+                    ),
+                    child: const Text(
+                      "TEST",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                        letterSpacing: 1.5,
                       ),
                     ),
                   ),
                 ],
               ),
-
-              const SizedBox(height: 30),
-
-              // TEST Button (Elevated)
-              ElevatedButton(
-                onPressed: () {
-                  _timerPosition.cancel();
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => BooleanToIntegerSequence(onPopScreen: () {
-                    _timerPosition = Timer.periodic(Duration(milliseconds: rpmProvider.optionVals[rpmProvider.rpmFrequencyFetchIndex]), (timer) => getCurrentPosition());
-                    setState(() {
-                      print("object");
-
-                    });
-                  },),));
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                  backgroundColor: Colors.blueAccent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 10,
-                  minimumSize: Size(MediaQuery.of(context).size.width, 50),
-                ),
-                child: const Text(
-                  "TEST",
-                  style: TextStyle(
-                    color: Colors.white, 
-                    fontWeight: FontWeight.bold, 
-                    fontSize: 20, 
-                    letterSpacing: 1.5,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
-      ),
+        Positioned(
+            top: 30,
+            left: 10,
+            child: IconButton(
+                onPressed: () {
+                //  scaffoldKey.currentState?.openDrawer();  // Opens the drawer
+                Navigator.push(context, MaterialPageRoute(builder: (context) => SequenceAnimationScreen(sequence: [1,2,3,4,5,6]),));
+                },
+                style: ButtonStyle(
+                  padding: WidgetStatePropertyAll(EdgeInsets.all(2)),
+                  backgroundColor: WidgetStatePropertyAll(Colors.grey.withOpacity(0.3))
+                ),
+                icon: Icon(Icons.menu)
+            )
+        ),
+      ],
     ),
   );
 }
@@ -623,12 +673,6 @@ class SyncButtonScreen extends StatefulWidget {
 class _SyncButtonScreenState extends State<SyncButtonScreen> {
   List<double> rpmRanges = []; // To store the fetched RPM ranges
 
-  // Function to update RPM ranges in the state
-  void updateRanges(List<double> fetchedRanges) {
-    setState(() {
-      rpmRanges = fetchedRanges;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {

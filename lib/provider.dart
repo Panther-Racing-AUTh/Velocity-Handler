@@ -7,7 +7,7 @@ class RPMRangeProvider with ChangeNotifier {
   final double maxRange = 14000;
   int _rpmFrequencyFetchIndex = 0;
   final List<String> _options = ['High', 'Middle', 'Slow'];
-  final List<int> _optionVals=[50,100,300];
+  final List<int> _optionVals=[50,100,200];
 
 
   // Initial ranges

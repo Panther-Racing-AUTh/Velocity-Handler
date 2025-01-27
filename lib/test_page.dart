@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:esp_v1/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -144,7 +145,7 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
       ),
     );
   }
-
+  
   @override
   void dispose() {
     pollingTimer?.cancel();
@@ -155,11 +156,14 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Boolean to Integer Sequence", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          "Boolean to Integer Sequence",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
         leading: IconButton(
           onPressed: () {
-            widget.onPopScreen(); // Call the callback when dialog is dismissed
+            widget.onPopScreen(); // Callback when dialog is dismissed
             Navigator.of(context).pop(); // Close the dialog
           },
           icon: const Icon(Icons.arrow_back),
@@ -170,8 +174,20 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Section Title
+              const Text(
+                "Actions",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.left,
+              ),
+              const SizedBox(height: 16),
+              // Send Boolean Button
               ElevatedButton(
                 onPressed: isProcessing
                     ? null
@@ -179,57 +195,230 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
                   sendBooleanToESP32(true); // Send boolean to ESP32
                 },
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  backgroundColor: Colors.blueAccent, // Button color
-                  foregroundColor: Colors.white, // Text color
-                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  elevation: 4,
+                  textStyle: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                child: const Text("Send Boolean to ESP32"),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.send_rounded),
+                    SizedBox(width: 8),
+                    Text("Send Boolean to ESP32"),
+                  ],
+                ),
               ),
               const SizedBox(height: 20),
+              // Loading Indicator
               if (isProcessing) ...[
-                const CircularProgressIndicator(),
-                const SizedBox(height: 10),
-                const Text("Waiting for integer sequence from ESP32...",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const CircularProgressIndicator(
+                  color: Colors.blueAccent,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  "Waiting for integer sequence from ESP32...",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
               ],
               const SizedBox(height: 20),
-              Text(
+              // Sequence Display Section
+              const Text(
                 "Received Sequence:",
-                style: const TextStyle(
-                  fontSize: 18,
+                style: TextStyle(
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
               ),
-              SizedBox(height: 8), // Adds some space between the title and sequence
+              const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.blueAccent.withOpacity(0.1), // Soft background color
-                  borderRadius: BorderRadius.circular(12), // Rounded corners
-                  border: Border.all(color: Colors.blueAccent, width: 1.5), // Border around the container
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.2),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Text(
                   receivedSequence.isNotEmpty
                       ? receivedSequence.join(", ")
-                      : "No sequence received yet", // Show a default message if the list is empty
+                      : "No sequence received yet.",
                   style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.blueAccent, // Blue color for the sequence
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.blueAccent,
                   ),
-                  textAlign: TextAlign.center, // Center the text
+                  textAlign: TextAlign.center,
                 ),
-              )
-
+              ),
+              // SequenceAnimationScreen(sequence: [1,2,3,4,5,6,5,4,3,2,1])
             ],
           ),
         ),
       ),
     );
   }
+
+}
+
+class SequenceAnimationScreen extends StatefulWidget {
+  final List<int> sequence;
+
+  const SequenceAnimationScreen({Key? key, required this.sequence})
+      : super(key: key);
+
+  @override
+  _SequenceAnimationScreenState createState() =>
+      _SequenceAnimationScreenState();
+}
+
+class _SequenceAnimationScreenState extends State<SequenceAnimationScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+  final double _canvasSize = 300.0;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialize the animation controller
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(seconds: widget.sequence.length * 2),
+    );
+
+    // Linear animation
+    _animation = Tween<double>(begin: 0.0, end: 1.0).animate(_controller)
+      ..addListener(() {
+        setState(() {});
+      });
+
+    // Start the animation
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  // Generate points along a circular path
+  List<Offset> _generateCircularPath(int points, double radius) {
+    final List<Offset> path = [];
+    for (int i = 0; i < points; i++) {
+      double angle = (2 * pi * i) / points;
+      double x = _canvasSize / 2 + radius * cos(angle);
+      double y = _canvasSize / 2 + radius * sin(angle);
+      path.add(Offset(x, y));
+    }
+    return path;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Generate the circular path for sequence
+    final path = _generateCircularPath(widget.sequence.length, 100.0);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Sequence Animation"),
+        centerTitle: true,
+      ),
+      body: Center(
+        child: Container(
+          width: _canvasSize,
+          height: _canvasSize,
+          color: Colors.grey.shade200,
+          child: Stack(
+            children: [
+              // Custom Painter to draw the lines
+              CustomPaint(
+                size: Size(_canvasSize, _canvasSize),
+                painter: PathPainter(path, _animation.value),
+              ),
+              // Draw the points
+              for (int i = 0; i < widget.sequence.length; i++)
+                Positioned(
+                  left: path[i].dx - 10,
+                  top: path[i].dy - 10,
+                  child: Opacity(
+                    opacity: _animation.value >= i / widget.sequence.length
+                        ? 1.0
+                        : 0.0,
+                    child: Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.blueAccent,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        widget.sequence[i].toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class PathPainter extends CustomPainter {
+  final List<Offset> path;
+  final double progress;
+
+  PathPainter(this.path, this.progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.blueAccent
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke;
+
+    final pathProgress = (path.length - 1) * progress;
+
+    for (int i = 0; i < pathProgress.floor(); i++) {
+      canvas.drawLine(path[i], path[i + 1], paint);
+    }
+
+    if (pathProgress.floor() < path.length - 1) {
+      final remainingProgress = pathProgress - pathProgress.floor();
+      final start = path[pathProgress.floor()];
+      final end = path[pathProgress.floor() + 1];
+      final animatedPoint = Offset(
+        start.dx + (end.dx - start.dx) * remainingProgress,
+        start.dy + (end.dy - start.dy) * remainingProgress,
+      );
+      canvas.drawLine(start, animatedPoint, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

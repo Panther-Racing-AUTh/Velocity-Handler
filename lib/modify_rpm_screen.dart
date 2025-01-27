@@ -1,4 +1,4 @@
-import 'package:esp_v1/provider.dart';
+import 'package:flutter_application_1/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_multi_slider/flutter_multi_slider.dart';

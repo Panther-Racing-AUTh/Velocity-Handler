@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:esp_v1/drawer.dart';
-import 'package:esp_v1/modify_rpm_screen.dart';
-import 'package:esp_v1/provider.dart';
-import 'package:esp_v1/test_page.dart';
+import 'package:flutter_application_1/drawer.dart';
+import 'package:flutter_application_1/model/progres_model.dart';
+import 'package:flutter_application_1/model/sync_model.dart';
+import 'package:flutter_application_1/model/test_model.dart';
+import 'package:flutter_application_1/modify_rpm_screen.dart';
+import 'package:flutter_application_1/provider.dart';
+import 'package:flutter_application_1/test_page.dart';
 import 'package:provider/provider.dart';
 
 import 'package:flutter/material.dart';
@@ -12,29 +15,7 @@ import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:network_info_plus/network_info_plus.dart';
-void main() {
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => RPMRangeProvider(),
-      child: MyApp(),
-    ),
-  );
-}
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: ESP8266ControlPage(),
-    );
-  }
-}
 
 class ESP8266ControlPage extends StatefulWidget {
   const ESP8266ControlPage({super.key});
@@ -56,6 +37,7 @@ class _ESP8266ControlPageState extends State<ESP8266ControlPage> {
   late Timer _timerTestCheck; // Timer for fetching data
   int check_loop=0;
   bool test_check=false;
+  bool _isAnimating=false;
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
@@ -66,10 +48,11 @@ class _ESP8266ControlPageState extends State<ESP8266ControlPage> {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.portraitUp,
     ]);
+    
     setNetwork();
     initializePosition();
     final rpmProvider=Provider.of<RPMRangeProvider>(context,listen: false);
-
+    rpmProvider.initializeAppIndex(getPlatformValue());
     // Timer to check Wi-Fi connection
     _timer = Timer.periodic(Duration(seconds: 5), (timer) => setNetwork());
 
@@ -94,6 +77,33 @@ class _ESP8266ControlPageState extends State<ESP8266ControlPage> {
     rpmValue = 0.0;
     isSystemActive = false;
     setState(() {});
+  }
+
+  Widget _buildMenuItem({
+    required IconData icon,
+    required String title,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final rpmProvider = Provider.of<RPMRangeProvider>(context,listen: false);
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: isSelected ? Colors.white : Colors.white54,
+      ),
+      title: rpmProvider.isMenuVisible
+          ? Text(
+              title,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.white54,
+              ),
+            )
+          : null,
+      onTap: onTap,
+      selected: isSelected,
+      selectedTileColor: Colors.blueGrey[700],
+      hoverColor: Colors.blueGrey[800],
+    );
   }
 
   Future<void> setNetwork() async {
@@ -349,9 +359,10 @@ class _ESP8266ControlPageState extends State<ESP8266ControlPage> {
   }
 @override
 Widget build(BuildContext context) {
-  final rpmProvider=Provider.of<RPMRangeProvider>(context,listen: false);
+  final rpmProvider = Provider.of<RPMRangeProvider>(context, listen: false);
 
-  return Scaffold(
+  if (rpmProvider.appIndex == 2 || rpmProvider.appIndex == 3) {
+    return Scaffold(
     drawer: CustomDrawer(),
     key: scaffoldKey, // Assign the global key here
     backgroundColor: Colors.grey[100], 
@@ -558,8 +569,589 @@ Widget build(BuildContext context) {
         ),
       ],
     ),
+  
+  
   );
+
+  }else if(rpmProvider.appIndex == 4 || rpmProvider.appIndex == 5 || rpmProvider.appIndex == 6){
+      final rpmProvider = Provider.of<RPMRangeProvider>(context, listen: false);
+
+     return Scaffold(
+      backgroundColor: Colors.grey[100],
+      body: Stack(
+        children: [
+          // Main Content Area
+          Row(
+            children: [
+              // Collapsible Side Menu
+              AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            width: rpmProvider.isMenuVisible ? 250 : 70,
+            color: Colors.blueGrey[900],
+            child: Column(
+              children: [
+                // App Logo or Header
+                Container(
+                  height: 80,
+                  alignment: Alignment.center,
+                  color: Colors.blueGrey[800],
+                  child: rpmProvider.isMenuVisible
+                      ? const Text(
+                          "MyApp",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.menu,
+                          color: Colors.white,
+                          size: 30,
+                        ),
+                ),
+                const Divider(color: Colors.white54),
+                // Menu Items
+                Expanded(
+                  child: ListView(
+                    children: [
+                      _buildMenuItem(
+                          icon: Icons.home,
+                          title: "Home",
+                          isSelected: rpmProvider.isMenuVisible == "Home",
+                          onTap: () {
+                          }),
+                       _buildMenuItem(
+                          icon: Icons.home,
+                          title: "Home",
+                          isSelected: rpmProvider.isMenuVisible == "Home",
+                          onTap: () {
+                          }),
+                           _buildMenuItem(
+                          icon: Icons.home,
+                          title: "Home",
+                          isSelected: rpmProvider.isMenuVisible == "Home",
+                          onTap: () {
+                          }),
+                           _buildMenuItem(
+                          icon: Icons.home,
+                          title: "Home",
+                          isSelected: rpmProvider.isMenuVisible == "Home",
+                          onTap: () {
+                          }),
+                           _buildMenuItem(
+                          icon: Icons.home,
+                          title: "Home",
+                          isSelected: rpmProvider.isMenuVisible == "Home",
+                          onTap: () {
+                          }),
+                    ],
+                  ),
+                ),
+                // Collapse/Expand Button
+                IconButton(
+                  icon: Icon(
+                    rpmProvider.isMenuVisible ? Icons.arrow_back_ios : Icons.arrow_forward_ios,
+                    color: Colors.white,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      rpmProvider.updateMenuVisible(rpmProvider.isMenuVisible);
+                    });
+                  },
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+// Main Content
+              Expanded(
+                child: Stack(
+                  children: [
+                    SafeArea(
+                      child: test_check
+                          ? ProcessingPage(testCheck: test_check)
+                          : SingleChildScrollView(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 40.0, vertical: 20),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 30),
+                                    // Wi-Fi Status Card
+                                    Card(
+                                      margin: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width* .2),
+                                      elevation: 6,
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(16)),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(20.0),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            const Text(
+                                              "Wi-Fi Status",
+                                              style: TextStyle(
+                                                  fontSize: 22,
+                                                  fontWeight: FontWeight.w600),
+                                            ),
+                                            const SizedBox(height: 10),
+                                            Center(
+                                              child: Row(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  isConnectedToESP
+                                                      ? Icons.wifi
+                                                      : Icons.wifi_off,
+                                                  color: isConnectedToESP
+                                                      ? Colors.green
+                                                      : Colors.red,
+                                                  size: 26,
+                                                ),
+                                                const SizedBox(width: 10),
+                                                Text(
+                                                  isConnectedToESP
+                                                      ? "Connected"
+                                                      : "Disconnected",
+                                                  style: TextStyle(
+                                                    fontSize: 20,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: isConnectedToESP
+                                                        ? Colors.green
+                                                        : Colors.red,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            )
+                                            ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 25),
+                                    // RPM Display
+                                    Center(
+                                      child: Container(
+                                        width:
+                                            MediaQuery.of(context).size.width *
+                                                0.4,
+                                        child: Card(
+                                          elevation: 8,
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(16)),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 24),
+                                            child: Column(
+                                              children: [
+                                                const Text(
+                                                  "RPM",
+                                                  style: TextStyle(
+                                                      fontSize: 26,
+                                                      fontWeight:
+                                                          FontWeight.w700),
+                                                ),
+                                                const SizedBox(height: 10),
+                                                AnimatedSwitcher(
+                                                  duration: const Duration(
+                                                      milliseconds: 500),
+                                                  transitionBuilder: (child,
+                                                          animation) =>
+                                                      ScaleTransition(
+                                                          scale: animation,
+                                                          child: child),
+                                                  child: Text(
+                                                    rpmValue.toStringAsFixed(0),
+                                                    style: const TextStyle(
+                                                      fontSize: 50,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Colors.blueAccent,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 25),
+                                    // Mode Selection
+                                    Card(
+                                      elevation: 8,
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(16)),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(20.0),
+                                        child: Column(
+                                          children: [
+                                            const Text(
+                                              "Mode",
+                                              style: TextStyle(
+                                                  fontSize: 26,
+                                                  fontWeight: FontWeight.w700),
+                                            ),
+                                            const SizedBox(height: 15),
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.spaceEvenly,
+                                              children: List.generate(
+                                                rpmProvider.ranges.length - 1,
+                                                (index) => modeText(
+                                                    index + 1, currentMode),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 15),
+                                    // Change Button
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        SyncButtonScreen(
+                                          isConnectedToESP: isConnectedToESP,
+                                          syncButton: syncButton(
+                                            isConnectedToESP: isConnectedToESP,
+                                            onRangesFetched: updateRanges,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 20),
+                                        ElevatedButton(
+                                          onPressed: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    MultiSliderExample(),
+                                              ),
+                                            );
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 40, vertical: 16),
+                                            backgroundColor: Colors.blueAccent,
+                                            shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12)),
+                                          ),
+                                          child: const Text(
+                                            "CHANGE",
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 20,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 30),
+                                    // Test Button
+                                    Center(
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          _timerPosition.cancel();
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  BooleanToIntegerSequence(
+                                                onPopScreen: () {
+                                                  _timerPosition =
+                                                      Timer.periodic(
+                                                    Duration(
+                                                        milliseconds: rpmProvider
+                                                                .optionVals[
+                                                            rpmProvider
+                                                                .rpmFrequencyFetchIndex]),
+                                                    (timer) =>
+                                                        getCurrentPosition(),
+                                                  );
+                                                  setState(() {});
+                                                },
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 40, vertical: 16),
+                                          backgroundColor: Colors.blueAccent,
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12)),
+                                          elevation: 10,
+                                        ),
+                                        child: const Text(
+                                          "TEST",
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 20,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          // Menu Toggle Button
+          Positioned(
+            top: 20,
+            left: 20,
+            child: IconButton(
+              icon: Icon(
+                rpmProvider.isMenuVisible ? Icons.close : Icons.menu,
+                size: 30,
+                color: Colors.black54,
+              ),
+              onPressed: () {
+                setState(() {
+                  rpmProvider.updateMenuVisible(rpmProvider.isMenuVisible);
+                });
+                
+              },
+
+            ),
+          ),
+        ],
+      ),
+    );
+
+
+  }else{
+    return Scaffold(
+    drawer: CustomDrawer(),
+    key: scaffoldKey, // Assign the global key here
+    backgroundColor: Colors.grey[100], 
+    body: Stack(
+      children: [
+
+        SafeArea(
+          child: test_check ? ProcessingPage(testCheck: test_check,) : SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+
+
+                  const SizedBox(height: 30),
+
+                  // Wi-Fi Status Card
+                  Card(
+                    elevation: 6,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        children: [
+                          Text(
+                            "Wi-Fi Status",
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                isConnectedToESP ? Icons.wifi : Icons.wifi_off,
+                                color: isConnectedToESP ? Colors.green : Colors.red,
+                                size: 26,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                isConnectedToESP ? "Connected" : "Disconnected",
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: isConnectedToESP ? Colors.green : Colors.red,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+
+                  OvalSegmentSelector(),
+
+
+                  const SizedBox(height: 15),
+                  // RPM Display
+                  Container(
+                    width: MediaQuery.of(context).size.width * .6,
+                    child: Card(
+                    elevation: 8,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Column(
+                        children: [
+                          const Text(
+                            "RPM",
+                            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 10),
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 500),
+                            transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
+                            child: Text(
+                              rpmValue.toStringAsFixed(0),
+                              style: const TextStyle(
+                                fontSize: 50,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blueAccent,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  ),
+                  const SizedBox(height: 25),
+
+                  // Mode Selection
+                  Card(
+                    elevation: 8,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        children: [
+                          const Text(
+                            "Mode",
+                            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 15),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: List.generate(rpmProvider.ranges.length - 1, (index) => modeText(index + 1, currentMode),)
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  // CHANGE Button (Gradient)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      SyncButtonScreen(isConnectedToESP: isConnectedToESP,syncButton: syncButton(
+                        isConnectedToESP: isConnectedToESP,
+                        onRangesFetched: updateRanges,
+                      ),),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => MultiSliderExample()));
+                          print(rpmProvider.ranges);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [Colors.blueAccent, Colors.purpleAccent]),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(color: Colors.black.withOpacity(0.2), spreadRadius: 1, blurRadius: 6),
+                            ],
+                          ),
+                          child: const Text(
+                            "CHANGE",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // TEST Button (Elevated)
+                  ElevatedButton(
+                    onPressed: () {
+                      _timerPosition.cancel();
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => BooleanToIntegerSequence(onPopScreen: () {
+                        _timerPosition = Timer.periodic(Duration(milliseconds: rpmProvider.optionVals[rpmProvider.rpmFrequencyFetchIndex]), (timer) => getCurrentPosition());
+                        setState(() {
+                          print("object");
+
+                        });
+                      },),));
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                      backgroundColor: Colors.blueAccent,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 10,
+                      minimumSize: Size(MediaQuery.of(context).size.width, 50),
+                    ),
+                    child: const Text(
+                      "TEST",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+            top: 30,
+            left: 10,
+            child: IconButton(
+                onPressed: () {
+                //  scaffoldKey.currentState?.openDrawer();  // Opens the drawer
+                Navigator.push(context, MaterialPageRoute(builder: (context) => SequenceAnimationScreen(sequence: [1,2,3,4,5,6]),));
+                },
+                style: ButtonStyle(
+                  padding: WidgetStatePropertyAll(EdgeInsets.all(2)),
+                  backgroundColor: WidgetStatePropertyAll(Colors.grey.withOpacity(0.3))
+                ),
+                icon: Icon(Icons.menu)
+            )
+        ),
+      ],
+    ),
+  
+  
+  );
+
+  }
+  
 }
+
 // Function to handle sending sync data and fetching ranges
   Future<void> syncAndFetchData(String espIp, bool isConnectedToESP, Function(List<double>) onRangesFetched) async {
     _timerPosition.cancel();
@@ -661,236 +1253,8 @@ Widget build(BuildContext context) {
 }
 
 
-class SyncButtonScreen extends StatefulWidget {
-  final bool isConnectedToESP;
-  final Widget syncButton;
-  SyncButtonScreen({required this.isConnectedToESP,required this.syncButton});
-
-  @override
-  _SyncButtonScreenState createState() => _SyncButtonScreenState();
-}
-
-class _SyncButtonScreenState extends State<SyncButtonScreen> {
-  List<double> rpmRanges = []; // To store the fetched RPM ranges
-
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          widget.syncButton,
-          SizedBox(height: 20),
-          if (rpmRanges.isNotEmpty)
-            Text(
-              "RPM Ranges: ${rpmRanges.join(", ")}",
-              style: TextStyle(fontSize: 16),
-            ),
-        ],
-      ),
-    );
-  }
-}
-class TestSuccessWidget extends StatelessWidget {
-  final String successMessage; // Optional message to show the success reason
-  final VoidCallback onContinue; // Callback function to proceed after success
-
-  const TestSuccessWidget({
-    Key? key,
-    required this.successMessage,
-    required this.onContinue,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.check_circle_outline,
-            size: 50,
-            color: Colors.greenAccent,
-          ),
-          const SizedBox(height: 10),
-          Text(
-            successMessage,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.greenAccent,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: onContinue, // Trigger the continue callback
-            child: const Text("Continue"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blueAccent,
-              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ProcessingPage extends StatefulWidget {
-  final bool testCheck;
-
-  ProcessingPage({Key? key, required this.testCheck}) : super(key: key);
-
-  @override
-  _ProcessingPageState createState() => _ProcessingPageState();
-}
-
-class _ProcessingPageState extends State<ProcessingPage> {
-  bool isProcessing = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[200],  // Light background color
-      
-      body: Center(
-        child: ProcessingPageIndicator(
-          isProcessing: widget.testCheck,
-          message: "Please wait while processing test...", // Clear and friendly message
-        ),
-      ),
-    );
-  }
-}
-
-class ProcessingPageIndicator extends StatelessWidget {
-  final bool isProcessing;
-  final String message;
-
-  const ProcessingPageIndicator({
-    Key? key,
-    required this.isProcessing,
-    this.message = "Processing...",
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: isProcessing
-          ? _buildProcessingView(context)
-          : const SizedBox.shrink(), // If not processing, show nothing
-    );
-  }
-
-  Widget _buildProcessingView(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * .4,
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: Offset(0, 4), // Soft shadow
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const CircularProgressIndicator(
-            strokeWidth: 6,  // Thicker loading circle
-            valueColor: AlwaysStoppedAnimation<Color>(Color.fromARGB(255, 33, 21, 146)),
-          ),
-          const SizedBox(height: 30),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-              color: Colors.deepPurple,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 
 
 
-class TestFailedWidget extends StatelessWidget {
-  final String errorMessage; // Optional message to show the reason for failure
-  final VoidCallback onRetry; // Callback function to retry the operation
 
-  const TestFailedWidget({
-    Key? key,
-    required this.errorMessage,
-    required this.onRetry,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Card(
-          elevation: 5,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 60,
-                  color: Colors.redAccent,
-                ),
-                const SizedBox(height: 15),
-                Text(
-                  errorMessage,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.redAccent,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: onRetry, // Trigger the retry callback
-                  child: const Text(
-                    "Retry",
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    elevation: 2,
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}

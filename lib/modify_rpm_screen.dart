@@ -1,4 +1,5 @@
-import 'package:flutter_application_1/provider.dart';
+import 'package:esp_v1/provider.dart';
+import 'package:esp_v1/wifi_v1.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_multi_slider/flutter_multi_slider.dart';
@@ -19,13 +20,14 @@ class _MultiSliderExampleState extends State<MultiSliderExample> {
   List<Color> sliderColors= [];
   double minSliderValue = 0;
   double maxSliderValue = 14000;
-  final String espIp = "192.168.4.1";
 
   @override
   void initState() {
     super.initState();
     final rpmProvider = Provider.of<RPMRangeProvider>(context, listen: false);
-    sliderValues = rpmProvider.ranges;
+    for(var val in rpmProvider.ranges){
+      sliderValues.add(val.toDouble());
+    }
     sliderColors=generateHeaterGradientColors(sliderValues);
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeRight,
@@ -55,11 +57,12 @@ class _MultiSliderExampleState extends State<MultiSliderExample> {
 
   Future<void> saveAndSendRPMData() async {
     final rpmProvider = Provider.of<RPMRangeProvider>(context, listen: false);
-    final tempSliderValues=[];
-    tempSliderValues.addAll(sliderValues);
-    tempSliderValues.remove(tempSliderValues.first);
-    tempSliderValues.remove(tempSliderValues.last);
-    rpmProvider.updateAllRanges(sliderValues);
+    final List<int> tempSliderValues=[];
+    for(var sliderval in sliderValues){
+      tempSliderValues.add(sliderval.toInt());
+    }
+    print(tempSliderValues);
+    rpmProvider.updateAllRanges(tempSliderValues);
     Map<String, dynamic> jsonRanges = {
       "ranges": List.generate(tempSliderValues.length, (index) => tempSliderValues[index])
     };
@@ -345,7 +348,7 @@ class _MultiSliderExampleState extends State<MultiSliderExample> {
                                       label: Padding(
                                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                         child: Text(
-                                          "${formatSliderValue(startValue)} - ${formatSliderValue(endValue)}",
+                                          "${startValue == 0 ? formatSliderValue(startValue) : formatSliderValue(startValue+1)} - ${formatSliderValue(endValue)}",
                                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                         ),
                                       ),

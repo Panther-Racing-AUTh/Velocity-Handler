@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:esp_v1/console_screen.dart';
 import 'package:esp_v1/drawer.dart';
+import 'package:esp_v1/log_provider.dart';
 import 'package:esp_v1/modify_rpm_screen.dart';
 import 'package:esp_v1/provider.dart';
 import 'package:esp_v1/test_page.dart';
 import 'package:provider/provider.dart';
+import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,13 +16,34 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:network_info_plus/network_info_plus.dart';
 void main() {
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => RPMRangeProvider(),
-      child: MyApp(),
-    ),
-  );
+  runZonedGuarded(() {
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => RPMRangeProvider()),
+
+          ChangeNotifierProvider(create: (_) => LogProvider()),
+        ],
+        child: MyApp(),
+      ),
+    );
+  }, (error, stackTrace) {
+    // Capture uncaught errors
+    developer.log("UNCAUGHT ERROR: $error\nSTACKTRACE: $stackTrace");
+  });
+
+  FlutterError.onError = (FlutterErrorDetails details) {
+    debugPrint("FLUTTER ERROR: ${details.exception}");
+    developer.log("FLUTTER ERROR: ${details.exceptionAsString()}");
+  };
+
+  debugPrint = (String? message, {int? wrapWidth}) {
+    if (message != null) {
+      developer.log("DEBUG PRINT: $message");
+    }
+  };
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -60,11 +84,13 @@ class _ESP8266ControlPageState extends State<ESP8266ControlPage> {
   late Timer _timerTestCheck; // Timer for fetching data
   int check_loop=0;
   bool test_check=false;
+  bool isSyncing=false;
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
     super.initState();
+
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeRight,
       DeviceOrientation.landscapeLeft,
@@ -80,7 +106,9 @@ class _ESP8266ControlPageState extends State<ESP8266ControlPage> {
 
     // Timer to fetch data
     _timerPosition = Timer.periodic(Duration(milliseconds: rpmProvider.optionVals[rpmProvider.rpmFrequencyFetchIndex]), (timer) => getCurrentPosition());
-    
+
+
+
   }
 
   @override
@@ -114,6 +142,8 @@ class _ESP8266ControlPageState extends State<ESP8266ControlPage> {
 
 
   Future<void> sendBooleanToESP32(bool value) async {
+    final logProvider = Provider.of<LogProvider>(context, listen: false);
+
     final String endpoint = "/test_check"; // Endpoint to handle boolean
       test_check=true;
       setState(() {
@@ -132,18 +162,36 @@ class _ESP8266ControlPageState extends State<ESP8266ControlPage> {
       if (response.statusCode == 200) {
         print("Successfully sent boolean to ESP32!");
       } else {
-        print("Failed to send data. Status code: ${response.statusCode}");
+        debugPrint = (String? message, {int? wrapWidth}) {
+          if (message != null) {
+            logProvider.addLog("LOG: $message");
+          }
+        };
+
+        FlutterError.onError = (FlutterErrorDetails details) {
+          logProvider.addLog("ERROR: ${details.exception}");
+        };
         test_check=false;
       
       }
       
     } catch (e) {
-      print("Error: $e");
+      debugPrint = (String? message, {int? wrapWidth}) {
+        if (message != null) {
+          logProvider.addLog("LOG: $message");
+        }
+      };
+
+      FlutterError.onError = (FlutterErrorDetails details) {
+        logProvider.addLog("ERROR: ${details.exception}");
+      };
       test_check=false;
       
     }
   }
   Future<void> getBooleanFromESP32() async {
+  final logProvider = Provider.of<LogProvider>(context, listen: false);
+
   final String endpoint = "/test_result"; // Endpoint to retrieve boolean
   check_loop++;
     setState(() {
@@ -167,8 +215,15 @@ class _ESP8266ControlPageState extends State<ESP8266ControlPage> {
 
       // You can now use the receivedValue in your app logic
     } else {
-      print("Failed to receive data. Status code: ${response.statusCode}");
-      
+      debugPrint = (String? message, {int? wrapWidth}) {
+        if (message != null) {
+          logProvider.addLog("LOG: $message");
+        }
+      };
+
+      FlutterError.onError = (FlutterErrorDetails details) {
+        logProvider.addLog("ERROR: ${details.exception}");
+      };
       // Wait for 60 seconds before going to the catch block (simulating retry or delay)
       
     }
@@ -179,10 +234,20 @@ class _ESP8266ControlPageState extends State<ESP8266ControlPage> {
     // Wait for 60 seconds before handling the error in the catch block
     await Future.delayed(Duration(minutes: 1));
     test_check = false;
-    print("Error: $e");
+    debugPrint = (String? message, {int? wrapWidth}) {
+      if (message != null) {
+        logProvider.addLog("LOG: $message");
+      }
+    };
+
+    FlutterError.onError = (FlutterErrorDetails details) {
+      logProvider.addLog("ERROR: ${details.exception}");
+    };
   }
 }
   Future<void> initializePosition() async {
+    final logProvider = Provider.of<LogProvider>(context, listen: false);
+
     RPMRangeProvider rangeProvider = Provider.of<RPMRangeProvider>(context,listen:false);
 
     if (!isConnectedToESP) return;
@@ -195,11 +260,20 @@ class _ESP8266ControlPageState extends State<ESP8266ControlPage> {
         });
       }
     } catch (e) {
-      print("Error initializing position: $e");
-    }
+      debugPrint = (String? message, {int? wrapWidth}) {
+        if (message != null) {
+          logProvider.addLog("LOG: $message");
+        }
+      };
+
+      FlutterError.onError = (FlutterErrorDetails details) {
+        logProvider.addLog("ERROR: ${details.exception}");
+      };    }
   }
 
   Future<void> getCurrentPosition() async {
+    final logProvider = Provider.of<LogProvider>(context, listen: false);
+
     RPMRangeProvider rangeProvider = Provider.of<RPMRangeProvider>(context,listen:false);
 
     if (!isConnectedToESP) return;
@@ -214,8 +288,15 @@ class _ESP8266ControlPageState extends State<ESP8266ControlPage> {
         });
       }
     } catch (e) {
-      print("Error fetching current position: $e");
-    }
+      debugPrint = (String? message, {int? wrapWidth}) {
+        if (message != null) {
+          logProvider.addLog("LOG: $message");
+        }
+      };
+
+      FlutterError.onError = (FlutterErrorDetails details) {
+        logProvider.addLog("ERROR: ${details.exception}");
+      };    }
   }
 
   Widget _statusColumn(String label, String value, Color color) {
@@ -350,6 +431,17 @@ class _ESP8266ControlPageState extends State<ESP8266ControlPage> {
       ),
     );
   }
+  Future<void> handleSync() async {
+    await syncAndFetchData(espIp, isConnectedToESP, isSyncing,(fetchedRanges) {
+      // Provide the fetched ranges to the callback
+      updateRanges(fetchedRanges.cast<int>());
+    });
+    setState(() {
+
+    });
+    // Optionally display a success message
+    print('Sync Complete!');
+  }
 @override
 Widget build(BuildContext context) {
   final rpmProvider=Provider.of<RPMRangeProvider>(context,listen: false);
@@ -481,10 +573,10 @@ Widget build(BuildContext context) {
                         onRangesFetched: updateRanges,
                       ),),
                       GestureDetector(
-                        onTap: () {
+                        onTap: isConnectedToESP ? () {
                           Navigator.push(context, MaterialPageRoute(builder: (context) => MultiSliderExample()));
                           print(rpmProvider.ranges);
-                        },
+                        } : null,
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                           decoration: BoxDecoration(
@@ -512,7 +604,7 @@ Widget build(BuildContext context) {
 
                   // TEST Button (Elevated)
                   ElevatedButton(
-                    onPressed: () {
+                    onPressed: isConnectedToESP ? () {
                       _timerPosition.cancel();
                       Navigator.push(context, MaterialPageRoute(builder: (context) => BooleanToIntegerSequence(modes: rpmProvider.ranges.length-1,onPopScreen: () {
                         setState(() {
@@ -522,7 +614,7 @@ Widget build(BuildContext context) {
 
                         });
                       },),));
-                    },
+                    } : null,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
                       backgroundColor: Colors.blueAccent,
@@ -539,6 +631,15 @@ Widget build(BuildContext context) {
                         letterSpacing: 1.5,
                       ),
                     ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => ConsoleLogPage()),
+                      );
+                    },
+                    child: Text("Open Console"),
                   ),
                 ],
               ),
@@ -564,13 +665,74 @@ Widget build(BuildContext context) {
     ),
   );
 }
+
+  Future<void> initializeSync() async {
+    // Cancel any existing timer before initializing sync
+    _timerPosition.cancel();
+
+    if (!isConnectedToESP) return; // Check if connected to ESP
+
+    setState(() {
+      isSyncing = true;
+    });
+
+    try {
+      // Sending the sync status
+      final response = await http.post(
+        Uri.parse("http://$espIp/sync"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"sync": true}),
+      );
+
+      if (response.statusCode == 200) {
+        print("Sync status sent successfully");
+
+        // Fetch RPM ranges after syncing
+        final rangeResponse = await http.get(Uri.parse("http://$espIp/ranges"));
+        if (rangeResponse.statusCode == 200) {
+          final Map<String, dynamic> data = jsonDecode(rangeResponse.body);
+          List<int> rpmRanges = [];
+          print(data);
+          for (int i = 0; i < data['ranges'].length; i++) {
+            rpmRanges.add(int.parse(data['ranges'][i][0].toString()));
+            if (i == data['ranges'].length - 1) {
+              rpmRanges.add(int.parse(data['ranges'][i][1].toString()));
+            }
+          }
+
+          // Call the callback with the fetched RPM ranges
+          updateRanges(rpmRanges);
+        } else {
+          print("Failed to fetch ranges");
+        }
+      } else {
+        print("Failed to send sync status");
+      }
+    } catch (e) {
+      print("Error in sync or fetching data: $e");
+    } finally {
+      // Using Provider to access rpmFrequencyFetchIndex and set the timer
+      final rpmProvider = Provider.of<RPMRangeProvider>(context, listen: false);
+      _timerPosition = Timer.periodic(
+        Duration(milliseconds: rpmProvider.optionVals[rpmProvider.rpmFrequencyFetchIndex]),
+            (timer) => getCurrentPosition(),
+      );
+
+      setState(() {
+        isSyncing = false;
+      });
+    }
+  }
+
 // Function to handle sending sync data and fetching ranges
-  Future<void> syncAndFetchData(String espIp, bool isConnectedToESP, Function(List<int>) onRangesFetched) async {
+  Future<void> syncAndFetchData(String espIp, bool isConnectedToESP,bool isSyncing, Function(List<int>) onRangesFetched) async {
     _timerPosition.cancel();
     if (!isConnectedToESP) return;
 
-    bool isSyncing = true;
+    setState(() {
+      isSyncing = true;
 
+    });
     try {
       // Sending the sync status
       final response = await http.post(
@@ -610,7 +772,9 @@ Widget build(BuildContext context) {
       final rpmProvider=Provider.of<RPMRangeProvider>(context,listen: false);
       _timerPosition = Timer.periodic(Duration(milliseconds: rpmProvider.optionVals[rpmProvider.rpmFrequencyFetchIndex]), (timer) => getCurrentPosition());
 
-      isSyncing = false;
+      setState(() {
+        isSyncing = false;
+      });
     }
   }
   void updateRanges(List<int> fetchedRanges) {
@@ -626,10 +790,10 @@ Widget build(BuildContext context) {
     bool isSyncing = false;
 
     // Function to trigger sync operation
-    Future<void> handleSync() async {
+    void handleSync() async {
       isSyncing = true;
 
-      await syncAndFetchData(espIp, isConnectedToESP, (fetchedRanges) {
+      await syncAndFetchData(espIp, isConnectedToESP, isSyncing,(fetchedRanges) {
         // Provide the fetched ranges to the callback
         onRangesFetched(fetchedRanges.cast<int>());
       });

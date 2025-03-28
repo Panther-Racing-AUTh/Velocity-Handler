@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:esp_v1/log_provider.dart';
 import 'package:esp_v1/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -27,9 +28,10 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
   String ssid = "";
   String mySsid = "ESP8266_AP";
   late Timer _timer; // Timer for checking network
-  late Timer _timerPosition;
-  bool isProcessing = false;
-  bool testCheck = false;
+  // late Timer _timerPosition;
+  bool currentPositionProcessing = false;
+
+  bool checkProcessing = false;
   List<int> receivedSequence = [];
   int? currentPosition;
   int selectedPosition = 1;
@@ -42,7 +44,9 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
     setNetwork();
     // Timer to check Wi-Fi connection
     _timer = Timer.periodic(Duration(seconds: 5), (timer) => setNetwork());
-    _timerPosition = Timer.periodic(Duration(seconds: 5), (timer) => getCurrentPostion(),);
+    currentPositionProcessing = true; // Set processing state to false
+
+    getCurrentPostion();
 
   }
 
@@ -50,7 +54,7 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
   void dispose() {
 
     super.dispose();
-    _timerPosition.cancel();
+    // _timerPosition.cancel();
     _timer.cancel();
     pollingTimer?.cancel();
   }
@@ -74,9 +78,10 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
   String removeQuotes(String input) => input.replaceAll('"', '');
 
   Future<void> sendBooleanToESP32(int value) async {
+    final logProvider = Provider.of<LogProvider>(context, listen: false);
+
     setState(() {
-      isProcessing = true;
-      testCheck = true;
+      checkProcessing = true;
     });
 
     try {
@@ -87,23 +92,49 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
       );
 
       if (response.statusCode == 200) {
-        print("Successfully sent boolean to ESP32!");
+        debugPrint = (String? message, {int? wrapWidth}) {
+          if (message != null) {
+            logProvider.addLog("LOG: $message");
+          }
+        };
+
+        FlutterError.onError = (FlutterErrorDetails details) {
+          logProvider.addLog("ERROR: ${details.exception}");
+        };
         startPolling();
       } else {
-        print("Failed to send data. Status code: ${response.statusCode}");
-        setState(() {
-          testCheck = false;
-        });
+        debugPrint = (String? message, {int? wrapWidth}) {
+          if (message != null) {
+            logProvider.addLog("LOG: $message");
+          }
+        };
+
+        FlutterError.onError = (FlutterErrorDetails details) {
+          logProvider.addLog("ERROR: ${details.exception}");
+        };
       }
     } catch (e) {
-      print("Error sending boolean: $e");
+      debugPrint = (String? message, {int? wrapWidth}) {
+        if (message != null) {
+          logProvider.addLog("LOG: $message");
+        }
+      };
+
+      FlutterError.onError = (FlutterErrorDetails details) {
+        logProvider.addLog("ERROR: ${details.exception}");
+      };
       setState(() {
-        testCheck = false;
+        checkProcessing = false;
       });
     }
   }
 
   Future<void> sendPositionToESP32(int position) async {
+    final logProvider = Provider.of<LogProvider>(context, listen: false);
+
+    setState(() {
+      checkProcessing = true;
+    });
     try {
       final response = await http.post(
         Uri.parse(espIp + sendEndpoint),
@@ -112,13 +143,30 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
       );
 
       if (response.statusCode == 200) {
-        print("Successfully sent position to ESP32: $position");
+        debugPrint = (String? message, {int? wrapWidth}) {
+          if (message != null) {
+            logProvider.addLog("LOG: $message");
+          }
+        };
+
+        FlutterError.onError = (FlutterErrorDetails details) {
+          logProvider.addLog("ERROR: ${details.exception}");
+        };
         startPolling();
 
       } else {
-        print("Failed to send position. Status code: ${response.statusCode}");
-      }
+        debugPrint = (String? message, {int? wrapWidth}) {
+          if (message != null) {
+            logProvider.addLog("LOG: $message");
+          }
+        };
+
+        FlutterError.onError = (FlutterErrorDetails details) {
+          logProvider.addLog("ERROR: ${details.exception}");
+        };      }
+
     } catch (e) {
+
       print("Error sending position: $e");
     }
   }
@@ -147,7 +195,7 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
               timer.cancel();
               setState(() {
                 sendBack();
-                isProcessing = false;
+                currentPositionProcessing = false;
               });
               showCompletionDialog();
             }
@@ -157,6 +205,9 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
         } else {
           print("Failed to receive data. Status code: ${response.statusCode}");
         }
+        setState(() {
+          checkProcessing = false;
+        });
       } catch (e) {
         print("Error polling mode path: $e");
       }
@@ -164,7 +215,7 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
   }
   void getCurrentPostion() {
     final rpmProvider = Provider.of<RPMRangeProvider>(context, listen: false);
-    isProcessing =true;
+
 
     pollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
       try {
@@ -177,17 +228,24 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
           setState(() {
             selectedPosition = currentPosition ?? 1;
           });
+
           print("Current Position: $currentPosition");
 
+          // Stop polling since we got a valid position
+          timer.cancel();
+          pollingTimer = null; // Clear the reference
+
+          setState(() {
+            currentPositionProcessing = false; // Set processing state to false
+          });
+
+          return; // Exit the function
         } else {
           print("Failed to receive data. Status code: ${response.statusCode}");
         }
+
       } catch (e) {
         print("Error polling mode path: $e");
-      } finally {
-        pollingTimer?.cancel();
-
-        isProcessing =false;
       }
     });
   }
@@ -205,13 +263,13 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
       } else {
         print("Failed to send data. Status code: ${response.statusCode}");
         setState(() {
-          testCheck = false;
+          checkProcessing = false;
         });
       }
     } catch (e) {
       print("Error sending boolean: $e");
       setState(() {
-        testCheck = false;
+        checkProcessing = false;
       });
     }
   }
@@ -270,13 +328,13 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
 
   @override
   Widget build(BuildContext context) {
-    if(isConnectedToESP && !_timerPosition.isActive){
-      _timerPosition = Timer.periodic(Duration(seconds: 5), (timer) => getCurrentPostion(),);
-    }else{
-      if(!isConnectedToESP){
-        _timerPosition.cancel();
-      }
-    }
+    // if(isConnectedToESP && !_timerPosition.isActive){
+    //   _timerPosition = Timer.periodic(Duration(seconds: 5), (timer) => getCurrentPostion(),);
+    // }else{
+    //   if(!isConnectedToESP){
+    //     _timerPosition.cancel();
+    //   }
+    // }
     return Scaffold(
       appBar: AppBar(
         title: const Text("Servo Motor Check"),
@@ -303,7 +361,7 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
                         ),
                         const SizedBox(height: 10),
                         ElevatedButton.icon(
-                          onPressed: isConnectedToESP ? isProcessing ? null : () => sendBooleanToESP32(180) : null,
+                          onPressed: isConnectedToESP ? currentPositionProcessing || checkProcessing ? null : () => sendBooleanToESP32(180) : null,
                           icon: const Icon(Icons.settings),
                           label: const Text("Full Servo Position Check"),
                           style: ElevatedButton.styleFrom(
@@ -342,7 +400,7 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
                         ),
                         const SizedBox(height: 10),
                         ElevatedButton.icon(
-                          onPressed: isConnectedToESP ? isProcessing ? null : () => sendPositionToESP32(selectedPosition) : null,
+                          onPressed: isConnectedToESP ? currentPositionProcessing || checkProcessing ? null : () => sendPositionToESP32(selectedPosition) : null,
                           icon: const Icon(Icons.send,color: Colors.white,),
                           label: const Text("Send Position",style: TextStyle(color: Colors.white),),
                           style: ElevatedButton.styleFrom(
@@ -358,7 +416,7 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
               ],
             ),
           ),
-          isProcessing ? Container(
+          currentPositionProcessing || checkProcessing ? Container(
           height: MediaQuery.of(context).size.height,
             width: MediaQuery.of(context).size.width,
             color: Colors.black45,

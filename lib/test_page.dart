@@ -45,7 +45,7 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
     // Timer to check Wi-Fi connection
     _timer = Timer.periodic(Duration(seconds: 5), (timer) => setNetwork());
     currentPositionProcessing = true; // Set processing state to false
-
+    sendBooleanToESP32(true);
     getCurrentPostion();
 
   }
@@ -55,6 +55,7 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
 
     super.dispose();
     // _timerPosition.cancel();
+    sendBooleanToESP32(false);
     _timer.cancel();
     pollingTimer?.cancel();
   }
@@ -77,7 +78,7 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
   }
   String removeQuotes(String input) => input.replaceAll('"', '');
 
-  Future<void> sendBooleanToESP32(int value) async {
+  Future<void> sendBooleanToESP32(bool value) async {
     final logProvider = Provider.of<LogProvider>(context, listen: false);
 
     setState(() {
@@ -88,7 +89,7 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
       final response = await http.post(
         Uri.parse(espIp + sendEndpoint),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'position': value}),
+        body: jsonEncode({'test_check': value}),
       );
 
       if (response.statusCode == 200) {
@@ -101,7 +102,6 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
         FlutterError.onError = (FlutterErrorDetails details) {
           logProvider.addLog("ERROR: ${details.exception}");
         };
-        startPolling();
       } else {
         debugPrint = (String? message, {int? wrapWidth}) {
           if (message != null) {
@@ -113,6 +113,10 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
           logProvider.addLog("ERROR: ${details.exception}");
         };
       }
+      setState(() {
+        sendBack();
+        currentPositionProcessing = false;
+      });
     } catch (e) {
       debugPrint = (String? message, {int? wrapWidth}) {
         if (message != null) {
@@ -152,7 +156,6 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
         FlutterError.onError = (FlutterErrorDetails details) {
           logProvider.addLog("ERROR: ${details.exception}");
         };
-        startPolling();
 
       } else {
         debugPrint = (String? message, {int? wrapWidth}) {
@@ -361,7 +364,7 @@ class _BooleanToIntegerSequenceState extends State<BooleanToIntegerSequence> {
                         ),
                         const SizedBox(height: 10),
                         ElevatedButton.icon(
-                          onPressed: isConnectedToESP ? currentPositionProcessing || checkProcessing ? null : () => sendBooleanToESP32(180) : null,
+                          onPressed: isConnectedToESP ? currentPositionProcessing || checkProcessing ? null : () => startPolling() : null,
                           icon: const Icon(Icons.settings),
                           label: const Text("Full Servo Position Check"),
                           style: ElevatedButton.styleFrom(
